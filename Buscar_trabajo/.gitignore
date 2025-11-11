@@ -1,0 +1,26 @@
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+.pytest_cache/
+
+# Entorno virtual (el que aparece como .env)
+.env
+venv/
+env/
+
+# Archivos de configuración y credenciales privadas
+credentials.json
+credenciales.txt
+
+# Archivos de datos o temporales
+*.csv
+*.xlsx
+*.log
+
+# Archivos de VSC
+.vscode/
+
+# Archivos duplicados (se recomienda eliminarlos o renombrarlos localmente)
+* copy.py
