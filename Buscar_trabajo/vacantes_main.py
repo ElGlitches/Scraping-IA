@@ -8,14 +8,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 # Importa tus funciones de scraping
 from src.getonbrd import buscar_vacantes_getonbrd
-from src.linkedin_jobs import buscar_vacantes_linkedin
-from src.computrabajo import buscar_vacantes_computrabajo
-from src.bne import buscar_vacantes_bne # Asumo el nombre de la función
-from src.laborum import buscar_vacantes_laborum # Asumo el nombre de la función
-from src.trabajando import buscar_vacantes_trabajando # Asumo el nombre de la función
+# from src.linkedin_jobs import buscar_vacantes_linkedin
+# from src.computrabajo import buscar_vacantes_computrabajo
+# from src.bne import buscar_vacantes_bne # Asumo el nombre de la función
+# from src.laborum import buscar_vacantes_laborum # Asumo el nombre de la función
+# from src.trabajando import buscar_vacantes_trabajando # Asumo el nombre de la función
 
 # Importa el resto de tus utilidades
-from src.sheets_manager import aplanar_y_normalizar # Asumo que esta es la función de normalización
+from src.sheets_manager import aplanar_y_normalizar, conectar_sheets, preparar_hoja, actualizar_sheet, registrar_actualizacion # Asumo que esta es la función de normalización
 from src.analizador_vacantes import analizar_vacante # Asumo que esta es la función de análisis
 from concurrent.futures import ThreadPoolExecutor, as_completed
 # --- Fin Importaciones ---
@@ -25,11 +25,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 FUNCIONES_BUSQUEDA = [
     # (nombre_del_portal, funcion_de_busqueda)
     ("GetOnBrd", buscar_vacantes_getonbrd),
-    ("LinkedIn", buscar_vacantes_linkedin),
-    ("Computrabajo", buscar_vacantes_computrabajo),
-    ("BNE", buscar_vacantes_bne),
-    ("Laborum", buscar_vacantes_laborum),
-    ("Trabajando", buscar_vacantes_trabajando),
+    # ("LinkedIn", buscar_vacantes_linkedin),
+    # ("Computrabajo", buscar_vacantes_computrabajo),
+    # ("BNE", buscar_vacantes_bne),
+    # ("Laborum", buscar_vacantes_laborum),
+    # ("Trabajando", buscar_vacantes_trabajando),
 ]
 
 # --- 2. Funciones Lógicas ---
@@ -111,8 +111,28 @@ if __name__ == "__main__":
     # 2. Normalización y Análisis
     vacantes_finales = procesar_vacantes(resultados_crudos)
     
-    # Aquí iría el paso final:
-    # 3. Guardado en hojas de cálculo (si tienes la función de sheets_manager para guardar)
-    # sheets_manager.guardar_datos(vacantes_finales)
+ # 3. Guardado en Google Sheets (¡NUEVO CÓDIGO DESCOMENTADO!)
+    try:
+        # Asegúrate de importar estas funciones desde src.sheets_manager
+        from src.sheets_manager import conectar_sheets, preparar_hoja, actualizar_sheet, registrar_actualizacion
+        
+        print("\n💾 Iniciando conexión y guardado en Google Sheets...")
+        
+        # Conectar (obtiene la hoja de trabajo)
+        hoja = conectar_sheets()
+        
+        # Preparar estructura (encabezados, filtros)
+        preparar_hoja(hoja)
+        
+        # Actualizar hoja con las vacantes
+        actualizar_sheet(hoja, vacantes_finales)
+        
+        # Registrar la hora de finalización
+        registrar_actualizacion(hoja)
+        
+    except Exception as e:
+        print(f"❌ ERROR CRÍTICO al interactuar con Google Sheets: {e}")
+        
+    print("\nProceso finalizado.")
     
     print("\nProceso finalizado.")
