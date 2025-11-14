@@ -68,16 +68,28 @@ def recoleccion_de_vacantes():
 
 def procesar_vacantes(resultados_raw):
     """
-    Normaliza el formato de los datos recolectados y realiza el análisis (placeholder).
+    Normaliza el formato de los datos recolectados, ELIMINA DUPLICADOS 
+    y realiza el análisis.
     """
-    
-    # Normalización (Aplanar y Normalizar)
+    # 1. Normalización y Aplanamiento
     vacantes_normalizadas = aplanar_y_normalizar(resultados_raw)
-    print(f"✅ Vacantes normalizadas: {len(vacantes_normalizadas)}")
+    
+    # 2. DEDUPLICACIÓN: Usar un diccionario para eliminar duplicados por URL
+    vacantes_unicas = {}
+    for vacante in vacantes_normalizadas:
+        url = vacante.get("url")
+        # Usamos la URL como clave. Si ya existe, se sobrescribe.
+        if url: 
+            vacantes_unicas[url] = vacante
+    
+    # Convierte el diccionario de vuelta a una lista de vacantes
+    vacantes_sin_duplicados = list(vacantes_unicas.values())
+    
+    print(f"✅ Vacantes ÚNICAS y normalizadas: {len(vacantes_sin_duplicados)}") 
 
-    # Análisis (Placeholder para la lógica de análisis)
+    # 3. ANÁLISIS: Ahora iteramos sobre la lista sin duplicados
     print("-> Iniciando Análisis de vacantes...")
-    for i, v in enumerate(vacantes_normalizadas, 1):
+    for i, v in enumerate(vacantes_sin_duplicados, 1):
         desc = v.get("descripcion", "")
         titulo = v.get("titulo", "Vacante sin título")
         
@@ -85,16 +97,15 @@ def procesar_vacantes(resultados_raw):
             if not desc:
                 v["analisis"] = "Sin descripción disponible."
             else:
-                
+                # La función analizar_vacante debe existir en src/analizador_vacantes.py
                 v["analisis"] = analizar_vacante(desc)
-            
             
         except Exception as e:
             v["analisis"] = f"Error en análisis: {e}"
             print(f"⚠️ Error al analizar la vacante '{titulo}'.")
             
-    return vacantes_normalizadas
-
+    # 4. DEVOLVER la lista limpia y analizada
+    return vacantes_sin_duplicados
 
 # --- 3. Ejecución principal ---
 if __name__ == "__main__":
