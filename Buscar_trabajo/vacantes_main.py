@@ -1,7 +1,8 @@
 # --- 1. Importaciones ---
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed # Para concurrencia
+from concurrent.futures import ThreadPoolExecutor, as_completed 
+from typing import List, Dict, Any
 
 # Asegura que Python encuentre los módulos en la carpeta 'src'
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -30,7 +31,7 @@ PORTALES_ACTIVOS = [
 
 # --- 2. Funciones Lógicas ---
 
-def recoleccion_de_vacantes():
+def recoleccion_de_vacantes() -> List[Dict[str, Any]]:
     """
     Recolecta vacantes usando concurrencia anidada (por portal y por keyword) 
     para máxima velocidad.
@@ -46,8 +47,7 @@ def recoleccion_de_vacantes():
 
     print(f"-> Iniciando {len(tareas_con_keywords)} búsquedas en paralelo...")
     
-    # 2. Ejecución Concurrente con ThreadPoolExecutor
-    # 10 workers es un buen número inicial para tareas limitadas por I/O
+    # 2. Ejecución Concurrente 
     with ThreadPoolExecutor(max_workers=10) as executor:
         
         # Mapea las tareas al executor, pasando la keyword como argumento
@@ -61,6 +61,7 @@ def recoleccion_de_vacantes():
             portal_nombre, keyword = future_to_task[future]
             
             try:
+                # El resultado aquí es la lista de vacantes devuelta por el scraper
                 vacantes_encontradas = future.result()
                 if vacantes_encontradas:
                     resultados_raw.extend(vacantes_encontradas)
@@ -72,34 +73,36 @@ def recoleccion_de_vacantes():
                 
     return resultados_raw
 
-def procesar_vacantes(resultados_raw):
+def procesar_vacantes(resultados_raw: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Normaliza, elimina duplicados (por URL) y realiza el análisis de las vacantes.
     """
     
     # 1. Normalización y Aplanamiento
     vacantes_normalizadas = aplanar_y_normalizar(resultados_raw)
-    vacantes_unicas = {}
-    vacantes_sin_url = []
     
-    # 2. DEDUPLICACIÓN: Usar un diccionario para eliminar duplicados por URL
-
     vacantes_unicas = {}
+    vacantes_sin_url = [] # Contenedor para retener items que no tienen URL
+    
+    # 2. DEDUPLICACIÓN y FILTRADO para Depuración
     for vacante in vacantes_normalizadas:
         url = vacante.get("url")
-        # Si la URL existe, se sobrescribe con la versión más reciente (o simplemente se mantiene una)
-        if url and url.strip(): # ✅ Si la URL existe, aplica deduplicación
+        
+        if url and url.strip(): # Si tiene URL válida
+            # Aplica deduplicación: si existe, se ignora, si no, se añade
             vacantes_unicas[url] = vacante
         else:
-            # 💡 Almacenamos las vacantes sin URL para que no se pierdan
+            # 💡 RETENCIÓN: Si no tiene URL, la añadimos a esta lista para DEPURAR
             vacantes_sin_url.append(vacante)
-    
-    vacantes_sin_duplicados = list(vacantes_unicas.values())
-    print(f"✅ Vacantes ÚNICAS y normalizadas: {len(vacantes_sin_duplicados)}") 
 
-    # 3. ANÁLISIS
+    # 3. COMBINAR: Juntar las vacantes únicas con URL y las que no tienen URL
+    vacantes_finales = list(vacantes_unicas.values()) + vacantes_sin_url
+    
+    print(f"✅ Vacantes ÚNICAS y procesadas: {len(vacantes_finales)}") 
+
+    # 4. ANÁLISIS
     print("-> Iniciando Análisis de vacantes...")
-    for i, v in enumerate(vacantes_sin_duplicados, 1):
+    for i, v in enumerate(vacantes_finales, 1):
         desc = v.get("descripcion", "")
         titulo = v.get("titulo", "Vacante sin título")
         
@@ -111,9 +114,8 @@ def procesar_vacantes(resultados_raw):
             
         except Exception as e:
             v["analisis"] = f"Error en análisis: {e}"
-            # print(f"⚠️ Error al analizar la vacante '{titulo}'.") # Comentar para no saturar la terminal
             
-    return vacantes_sin_duplicados
+    return vacantes_finales
 
 
 # --- 3. Ejecución principal ---
@@ -134,6 +136,8 @@ if __name__ == "__main__":
         
         hoja = conectar_sheets()
         preparar_hoja(hoja)
+        
+        # Pasar la lista final de vacantes
         actualizar_sheet(hoja, vacantes_finales)
         registrar_actualizacion(hoja)
         

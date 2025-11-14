@@ -43,6 +43,7 @@ def buscar_vacantes_getonbrd(keyword: str):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
+        print(json.dumps(data['data'][0], indent=2))
         
         if 'data' in data and isinstance(data['data'], list):
             vacantes_raw.extend(

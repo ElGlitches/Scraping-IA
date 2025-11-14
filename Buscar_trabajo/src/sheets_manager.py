@@ -145,24 +145,26 @@ def actualizar_sheet(sheet, ofertas: list[dict]):
     
     # 1. Obtener URLs existentes para deduplicación
     try:
-        # Columna G (indice 6) es donde está la URL
-        urls_columna = sheet.col_values(7, value_render_option='UNFORMATTED_VALUE')[2:] 
-        existentes = set(urls_columna)
-    except Exception:
-        # En caso de error de lectura, asumimos que no hay duplicados (más seguro)
-        existentes = set()
-    
+        data = sheet.get_all_values()
+        # Columna de URL (columna G, índice 6)
+        urls_existentes = [row[6] for row in data[1:] if len(row) > 6 and row[6]] 
+        existentes = set(urls_existentes)
+    except Exception as e:
+        print(f"⚠️ Advertencia: No se pudieron cargar URLs existentes para deduplicación: {e}")
+        existentes = set() # Usar un conjunto vacío si falla la carga
+
+
     nuevas_filas = []
 
-    # 2. Generar filas a partir de los diccionarios
+    # 2. Iterar sobre las vacantes para construir las filas y filtrar
     for o in ofertas:
-        # url = o.get("url")
+        url = o.get("url") # ✅ Aquí se define 'url' para CADA iteración.
 
-        # # Se espera que 'o' sea un dict. Si la URL es inválida o ya existe, saltar.
-        # if not url or url in existentes:
-        #     pass
+        # ⚠️ Filtrado de duplicados: Solo ignoramos si tiene una URL y esta ya existe.
+        if url and url in existentes:
+             continue 
 
-        # 3. Mapeo de diccionario a lista (asegura el orden de ENCABEZADOS)
+        # 3. Mapeo de diccionario a lista (DEBE ESTAR DENTRO DEL CICLO)
         nuevas_filas.append([
             o.get("titulo", ""),
             o.get("empresa", ""),
@@ -179,6 +181,7 @@ def actualizar_sheet(sheet, ofertas: list[dict]):
             o.get("descripcion", "")
         ])
 
+    # 4. Inserción y confirmación (DEBE ESTAR FUERA DEL CICLO)
     if nuevas_filas:
         sheet.append_rows(nuevas_filas)
         print(f"✅ {len(nuevas_filas)} nuevas vacantes agregadas.")
