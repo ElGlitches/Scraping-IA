@@ -42,21 +42,39 @@ def aplanar_y_normalizar(resultados_crudos):
     """
     vacantes_normalizadas = []
     
-    # Lógica de aplanamiento
-    for lista_vacantes in resultados_crudos:
-        if isinstance(lista_vacantes, list):
-            vacantes_normalizadas.extend(lista_vacantes)
-        elif isinstance(lista_vacantes, dict):
-            vacantes_normalizadas.append(lista_vacantes)
-
+    # 💡 DEBUG 1: Revisa qué estructura está recibiendo la función
+    if resultados_crudos:
+        print(f"DEBUG APLANAR: El primer resultado crudo es de tipo: {type(resultados_crudos[0])}")
+    
+    # 1. APLANAR: Añadir robustez para None
+    for item in resultados_crudos: 
+        if item is None:
+            continue  # Ignorar resultados nulos (común en errores de concurrencia)
+        
+        if isinstance(item, list):
+            # Asumimos que es una lista de vacantes (la más común)
+            vacantes_normalizadas.extend(item)
+        elif isinstance(item, dict):
+            # Si el scraper devuelve una única vacante
+            vacantes_normalizadas.append(item)
+        else:
+            # Capturar cualquier otro tipo de dato inesperado
+            print(f"DEBUG APLANAR: Tipo de dato inesperado encontrado: {type(item)}")
+            
     # Lógica de normalización
     vacantes_limpias = []
     for vacante in vacantes_normalizadas:
-        if 'descripcion' not in vacante:
-             vacante['descripcion'] = ''
-        # Aquí puedes añadir más normalizaciones, si las tienes.
+        # ⚠️ Aseguramos que la URL y descripción existan, incluso si están vacías
+        vacante['url'] = vacante.get('url', '') 
+        vacante['descripcion'] = vacante.get('descripcion', '') 
+        
+        # ... (otras normalizaciones)
+        
         vacantes_limpias.append(vacante)
 
+    # 💡 DEBUG 2: Verifica el tamaño final
+    print(f"DEBUG APLANAR: Vacantes normalizadas listas para deducción: {len(vacantes_limpias)}")
+    
     return vacantes_limpias
 
 # 🔗 Conexión con Google Sheets
@@ -121,8 +139,8 @@ def preparar_hoja(sheet):
 # 🧾 Actualizar hoja con nuevas vacantes
 def actualizar_sheet(sheet, ofertas: list[dict]):
     """
-    Añade nuevas vacantes a la hoja, asumiendo que 'ofertas' es una lista de diccionarios
-    estandarizados (ya normalizados y deducidos en el paso anterior).
+    Añade nuevas vacantes a la hoja, anulando la deduplicación temporalmente 
+    para forzar la inserción y depurar el campo URL.
     """
     
     # 1. Obtener URLs existentes para deduplicación
@@ -138,11 +156,11 @@ def actualizar_sheet(sheet, ofertas: list[dict]):
 
     # 2. Generar filas a partir de los diccionarios
     for o in ofertas:
-        url = o.get("url")
+        # url = o.get("url")
 
-        # Se espera que 'o' sea un dict. Si la URL es inválida o ya existe, saltar.
-        if not url or url in existentes:
-            continue
+        # # Se espera que 'o' sea un dict. Si la URL es inválida o ya existe, saltar.
+        # if not url or url in existentes:
+        #     pass
 
         # 3. Mapeo de diccionario a lista (asegura el orden de ENCABEZADOS)
         nuevas_filas.append([
@@ -152,7 +170,7 @@ def actualizar_sheet(sheet, ofertas: list[dict]):
             o.get("modalidad", ""),
             o.get("nivel", ""),
             o.get("jornada", ""),
-            o.get("url", ""),
+            o.get("url", ""), # Se insertará vacío si no se encontró en el scraper
             o.get("salario", ""),
             "",  # Estado editable (vacío por defecto)
             o.get("fecha_busqueda", ""),
