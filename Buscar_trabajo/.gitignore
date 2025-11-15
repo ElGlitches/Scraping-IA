@@ -18,5 +18,6 @@ credentials.json
 * copy.py
 * -313.py
 
-#archivos de prueba 
-../vacantes_sheets*
+# Archivos de prueba o duplicados
+../vacantes_sheets_v1.py
+../vacantes_sheets.py
