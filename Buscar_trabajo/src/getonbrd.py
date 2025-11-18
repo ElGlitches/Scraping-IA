@@ -77,32 +77,26 @@ def _procesar_resultados_getonbrd(json_data: list, keyword: str):
         salario_str = f"${min_salary} - ${max_salary}" if min_salary or max_salary else "No informado"
 
         vacante_dict = {
-            # ✅ URL: Se extrae correctamente de 'links'
+            # --- CAMPOS FÁCILES Y CRÍTICOS ---
+            "titulo": attributes.get("title", "No indicado"), 
             "url": links.get("public_url", ""), 
-
-            "titulo": attributes.get("title", "No indicado"), 
+            "descripcion": descripcion_limpia,
             
-            # 👈 CORRECCIÓN 1: Usamos la extracción del ID
-            "empresa": empresa_en_id.replace('-', ' ').title(), 
+            # --- DATOS CRUDOS ADICIONALES ---
+            "fecha_publicacion": attributes.get("published_at"),
             
-            # 👈 CORRECCIÓN 2: Usamos la ubicación extraída del ID
-            "ubicacion": ubicacion_candidata.capitalize(),
+            # --- CAMPOS QUE LA IA DEBE LLENAR (VACÍOS POR DEFECTO) ---
+            "empresa": "", 
+            "ubicacion": "", 
+            "modalidad": "", 
+            "nivel": "",
+            "jornada": "",
+            "salario": "",
             
-            # ✅ TÍTULO Y DESCRIPCIÓN LIMPIA
-            "titulo": attributes.get("title", "No indicado"), 
-            "descripcion": descripcion_limpia, # 👈 CORRECCIÓN 1: Limpieza de HTML
-         
-            # 👈 CORRECCIÓN 3: Uso de seniority limpio
-            "nivel": nivel_str,
-            
-            # 👈 CORRECCIÓN 4: Formato de Fecha de Publicación
-            "fecha_publicacion": datetime.fromtimestamp(timestamp_publicacion).strftime('%Y-%m-%d') if timestamp_publicacion else "",
-            
-            # Otros campos... (Se asume que están correctos)
-            "modalidad": attributes.get("remote_modality", "Presencial/Híbrido"),
-            "salario": f"${attributes.get('min_salary', '0')} - ${attributes.get('max_salary', '0')}" if attributes.get('min_salary') else "No informado",
+            # --- CAMPOS AUXILIARES ---
             "fecha_busqueda": fecha_actual(),
-            "prioridad": calc_prioridad(attributes.get("remote")),
+            "prioridad": "", # La IA puede ayudar con esto
+            "keyword_buscada": keyword
         }
         
         vacantes_procesadas.append(vacante_dict)

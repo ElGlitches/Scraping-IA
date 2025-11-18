@@ -1,5 +1,3 @@
-# src/analizador_vacantes.py (Versión Gemini)
-
 from tenacity import (
     retry, 
     stop_after_attempt, 
@@ -38,29 +36,41 @@ def analizar_vacante(desc: str) -> str:
     if not desc or len(desc) < 20:
         return "Descripción demasiado corta para analizar."
 
-    # 2. Ingeniería de Prompt
+    # 1. Ingeniería de Prompt y Definición de Tarea
     prompt = (
-        "Eres un analista de datos experto en mercado laboral. Tu tarea es analizar "
-        "una descripción de trabajo y estructurar el resumen."
-        "Necesitas identificar 3 elementos clave de la vacante, siguiendo este formato JSON estrictamente: "
+        "Eres un analista de datos experto en mercado laboral. Tu tarea es leer "
+        "la siguiente vacante y estructurar todos los datos relevantes en el formato JSON proporcionado. "
+        "Si un campo no se encuentra, usa 'No Determinado'."
         
-        "{ "
-        "  \"seniority\": [SENIORITY], "
-        "  \"skills\": [SKILL_1, SKILL_2, SKILL_3], "
-        "  \"resumen\": [BREVE_RESUMEN]"
-        "}"
-        
-        "\n\nInstrucciones Clave:"
-        "1. **Seniority:** Determina el nivel. Si no es claro, usa 'Mid'. Opciones: Junior, Mid, Senior, Lead."
-        "2. **Skills:** Lista los 3 requisitos técnicos más frecuentes y MÁS importantes. Usa nombres cortos (ej., 'AWS', 'Python', 'Terraform')."
-        "3. **Resumen:** Crea un resumen de la función en 15 palabras o menos."
-        f"\n\nDESCRIPCIÓN DE LA VACANTE: {desc}"
+        f"\n\nTÍTULO DE LA VACANTE: {titulo}"
+        f"\n\nDESCRIPCIÓN COMPLETA: {desc}"
     )
+    
+    # 2. Definición del Esquema JSON (Schema)
+    # ¡IMPORTANTE! Este esquema debe coincidir con TUS ENCABEZADOS de Sheets (A:M)
+    schema = {
+        "type": "object",
+        "properties": {
+            "empresa": {"type": "string", "description": "Nombre de la empresa."},
+            "ubicacion": {"type": "string", "description": "Ciudad, País o 'Remoto'."},
+            "modalidad": {"type": "string", "description": "Ej: 'Remoto', 'Híbrido', 'Presencial'."},
+            "nivel": {"type": "string", "description": "Ej: 'Junior', 'Mid', 'Senior', 'Lead'."},
+            "jornada": {"type": "string", "description": "Ej: 'Full-time', 'Part-time'."},
+            "salario": {"type": "string", "description": "Rango salarial estimado (ej: $2000 - $3000) o 'No informado'."},
+            "seniority_score": {"type": "integer", "description": "Puntuación de 1 a 100 de adecuación al perfil de automatización/backend."},
+            "top_skills": {"type": "array", "items": {"type": "string"}, "description": "Lista de 3 requisitos técnicos clave."},
+        },
+        "required": ["empresa", "ubicacion", "nivel", "salario", "top_skills"]
+    }
 
-    # 3. Llamada a la API de Gemini
+    # 3. Llamada a la API de Gemini (Usando JSON Schema)
     response = client.models.generate_content(
         model="gemini-2.5-flash", 
-        contents=[prompt]
+        contents=[prompt],
+        config=genai.types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=schema # Pasamos el esquema para una salida estricta
+        )
     )
     
     # 4. Devolver resultado
