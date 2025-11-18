@@ -12,12 +12,8 @@ env/
 
 # Archivos de configuración y credenciales privadas
 credentials.json
-../credenciales.txt
 
 # Archivos duplicados (los que terminan en copy o -313)
 * copy.py
 * -313.py
 
-# Archivos de prueba o duplicados
-../vacantes_sheets_v1.py
-../vacantes_sheets.py
