@@ -4,6 +4,84 @@ import time
 import random
 from .utils import normalizar_texto, calc_prioridad, fecha_actual
 
+def extraer_datos_vacante(url: str):
+    """
+    Navega a una URL de vacante (Cualquier portal) y extrae sus datos.
+    Usa selectores específicos y fallbacks genéricos (Meta tags, Body text).
+    """
+    datos = {}
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        
+        # User-Agent genérico para evitar bloqueos simples
+        context = browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+        page = context.new_page()
+        
+        try:
+            print(f"🌍 Navegando a: {url}...")
+            page.goto(url, timeout=60000)
+            
+            # --- TÍTULO ---
+            # 1. H1
+            h1 = page.locator("h1").first
+            if h1.count():
+                datos["titulo"] = normalizar_texto(h1.inner_text())
+            else:
+                # 2. Meta Title / Title Tag
+                datos["titulo"] = page.title()
+            
+            # --- EMPRESA ---
+            # 1. Selectores comunes
+            empresa_loc = page.locator("a.app-aware-link, div.job-details-jobs-unified-top-card__company-name, [class*='company'], [class*='employer']")
+            if empresa_loc.count():
+                datos["empresa"] = normalizar_texto(empresa_loc.first.inner_text())
+            else:
+                # 2. Meta Site Name
+                try:
+                    site_name = page.locator("meta[property='og:site_name']").get_attribute("content")
+                    if site_name: datos["empresa"] = site_name
+                except:
+                    pass
+            
+            if "empresa" not in datos:
+                datos["empresa"] = "Empresa Desconocida"
+
+            # --- DESCRIPCIÓN ---
+            selector_desc = "div.show-more-less-html__markup, div.description__text, section.core-section-container, div#job-details, div[class*='description'], article"
+            desc = ""
+            
+            if page.locator(selector_desc).count() > 0:
+                desc = page.locator(selector_desc).first.inner_text()
+            
+            # FALLBACK: Si no encontramos la caja de descripción, tomamos todo el texto visible.
+            # La IA es buena filtrando menús y footers.
+            if not desc or len(desc) < 100:
+                print("⚠️ Usando modo 'Texto Completo' (Fallback genérico)...")
+                desc = page.locator("body").inner_text()
+                
+            datos["descripcion"] = normalizar_texto(desc)
+            
+            # --- SALARIO ---
+            # Buscar '$' en el texto
+            salario = "No informado"
+            if "$" in desc:
+                # Intento muy naive de extraer la línea con $.
+                # Mejor dejamos que la IA lo extraiga luego si es necesario, 
+                # pero para el sheet intentamos algo simple.
+                pass 
+            datos["salario"] = salario
+            
+            datos["url"] = url
+            datos["ubicacion"] = "Remoto/Desconocido"
+            
+            return datos
+            
+        except Exception as e:
+            print(f"❌ Error scraping URL: {e}")
+            return None
+        finally:
+            browser.close()
+
 def buscar_vacantes_linkedin(keyword: str):
     ofertas = []
     

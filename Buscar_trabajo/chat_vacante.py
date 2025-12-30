@@ -4,7 +4,8 @@ import glob
 import time
 import json
 from src.asesor import iniciar_chat, generar_pack_postulacion
-from src.sheets_manager import conectar_sheets
+from src.sheets_manager import conectar_sheets, actualizar_estado, actualizar_sheet
+from src.linkedin_jobs import extraer_datos_vacante
 from src.analizador_vacantes import analizar_vacante
 
 def obtener_vacantes_pendientes(sheet):
@@ -105,25 +106,53 @@ def main():
         print(f"❌ Error leyendo Excel: {e}")
         return
 
-    if not vacantes:
-        print("✅ No hay vacantes pendientes de análisis (Match = Pendiente).")
-        return
-
-    print(f"\nSe encontraron {len(vacantes)} vacantes pre-filtradas por Keywords:")
+    print(f"\nSe encontraron {len(vacantes)} vacantes pendientes.")
     
-    # Mostrar menú (Top 10 para no saturar)
+    # Menu Principal
+    print("\nOpciones:")
+    print(" [1-10] Seleccionar vacante de la lista")
+    print(" [L]    Analizar desde LINK externo 🌐")
+    print(" [0]    Salir")
+
+    # Mostrar menú (Top 10)
     top_n = vacantes[:10]
     for i, v in enumerate(top_n):
-        print(f"[{i+1}] {v.get('Título')} - {v.get('Empresa')} (📍 {v.get('Ubicación')})")
+        print(f" [{i+1}] {v.get('Título')} - {v.get('Empresa')} (📍 {v.get('Ubicación')})")
 
-    # Selección
-    try:
-        sel = int(input("\nElige vacante a analizar (0 para salir): "))
-        if sel == 0: return
-        target_vacante = top_n[sel-1]
-    except (ValueError, IndexError):
-        print("Selección inválida.")
+    opcion_raw = input("\nElige opción: ").strip().lower()
+    
+    target_vacante = None
+    modo_link = False
+
+    if opcion_raw == "0":
         return
+    elif opcion_raw == "l":
+        modo_link = True
+        url = input("Pegue el LINK de la vacante: ").strip()
+        if not url: return
+        print("🕵️ Scrapeando datos en vivo...")
+        datos_scraped = extraer_datos_vacante(url)
+        if not datos_scraped:
+            print("❌ No se pudo extraer información del link.")
+            return
+        
+        # Adaptar al formato de sheet
+        target_vacante = {
+            "Título": datos_scraped.get("titulo"),
+            "Empresa": datos_scraped.get("empresa"),
+            "Ubicación": datos_scraped.get("ubicacion"),
+            "URL": datos_scraped.get("url"),
+            "Descripción": datos_scraped.get("descripcion"),
+            "Match %": "Nuevo",
+            "_row_idx": None # No está en sheet aún
+        }
+    else:
+        try:
+            sel = int(opcion_raw)
+            target_vacante = top_n[sel-1]
+        except (ValueError, IndexError):
+            print("Opción inválida.")
+            return
 
     # Procesar
     contexto = procesar_vacante_seleccionada(target_vacante, sheet)
@@ -133,16 +162,46 @@ def main():
         print("\n💬 Iniciando Chat con el Asesor...")
         chat_session = iniciar_chat(contexto)
         
-        print(f"\n🤖 Asesor: He estudiado la vacante de {target_vacante.get('Empresa')}. ¿Preparamos la entrevista o revisamos la carta?")
+        print(f"\n🤖 Asesor: He estudiado la vacante {target_vacante.get('Título')}. ¿Preparamos la entrevista o revisamos la carta?")
         
         while True:
             user_input = input("\n👤 Tú: ")
-            if user_input.lower() in ["salir", "exit"]: break
+            if user_input.lower() in ["salir", "exit", "chau"]:
+                print("👋 ¡Éxito en tu postulación!")
+                break
+            
             try:
                 resp = chat_session.send_message(user_input)
                 print(f"\n🤖 Asesor: {resp.text}")
             except Exception as e:
                 print(f"Error: {e}")
+
+        # --- SEGUIMIENTO (LINK vs EXISTENTE) ---
+        if modo_link:
+             guardar = input("\n¿Quieres GUARDAR esta vacante en tu Excel? [S/N]: ").lower()
+             if guardar == "s":
+                 # Convertir keys para sheet manager
+                 vacante_fmt = {k.lower(): v for k,v in target_vacante.items() if k != "_row_idx"}
+                 vacante_fmt["fecha_busqueda"] = "Manual"
+                 actualizar_sheet(sheet, [vacante_fmt])
+                 print("✅ Vacante guardada. (Aparecerá en la lista la próxima vez)")
+        
+        # Solo ofrecemos tracking si tiene una fila asociada
+        if target_vacante.get("_row_idx"):
+            print("\n📊 SEGUIMIENTO:")
+            print("¿Qué harás con esta vacante?")
+            opcion = input("[P]ostulado ✅  | [D]escartar ❌  | [M]antener Pendiente ⏳ : ").lower()
+            
+            nuevo_estado = ""
+            if opcion.startswith("p"):
+                nuevo_estado = "Postulado"
+            elif opcion.startswith("d"):
+                nuevo_estado = "Rechazado"
+                
+            if nuevo_estado:
+                actualizar_estado(target_vacante["_row_idx"], nuevo_estado)
+            else:
+                print("👌 Manteniendo en Pendiente.")
 
 if __name__ == "__main__":
     main()

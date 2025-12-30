@@ -205,8 +205,22 @@ def actualizar_sheet(sheet, ofertas: list[dict]):
         print("No hay nuevas vacantes para agregar.")
 
 
-def registrar_actualizacion(sheet):
-    """Actualiza la celda A1 con la fecha y hora actuales."""
-    valor = f"Última actualización: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     sheet.update("A1", [[valor]])
     print("Fecha de actualización registrada.")
+
+def actualizar_estado(row_idx, nuevo_estado):
+    """
+    Actualiza el estado de una vacante en la hoja.
+    row_idx: Índice de la fila (1-based).
+    nuevo_estado: String (ej: "Postulado", "Descartado")
+    """
+    try:
+        sheet = conectar_sheets()
+        # La columna Estado es la I (9na columna)
+        COL_ESTADO = 9 
+        sheet.update_cell(row_idx, COL_ESTADO, nuevo_estado)
+        print(f"✅ Estado actualizado en fila {row_idx}: {nuevo_estado}")
+        return True
+    except Exception as e:
+        print(f"❌ Error actualizando estado: {e}")
+        return False
