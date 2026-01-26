@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 from datetime import datetime
 import time
 import random
-from .utils import normalizar_texto, calc_prioridad, fecha_actual
+from utils import normalizar_texto, calc_prioridad, fecha_actual
 
 def extraer_datos_vacante(url: str):
     """

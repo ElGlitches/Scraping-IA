@@ -1,7 +1,7 @@
 import requests
 import json
-from .config import URL_GETONBRD, MAX_VACANTES_POR_PALABRA
-from .utils import fecha_actual, calc_prioridad
+from config import URL_GETONBRD, MAX_VACANTES_POR_PALABRA
+from utils import fecha_actual, calc_prioridad
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 

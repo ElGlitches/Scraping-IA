@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 import hashlib
 import json
-from .utils import clean_json_response
+from utils import clean_json_response
 
 CACHE_FILE = os.path.join(os.path.dirname(__file__), "..", "cv_cache.json")
 

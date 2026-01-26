@@ -1,5 +1,5 @@
-from .utils import cargar_texto_pdf
-from .config import RUTA_CV
+from utils import cargar_texto_pdf
+from config import RUTA_CV
 
 _CACHE_PERFIL = None
 

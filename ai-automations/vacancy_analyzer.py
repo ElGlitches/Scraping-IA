@@ -14,8 +14,8 @@ from google.genai.errors import APIError
 from dotenv import load_dotenv
 import os 
 import time
-from .utils import clean_json_response
-from .perfil import get_candidate_prompt
+from utils import clean_json_response
+from perfil import get_candidate_prompt
 
 load_dotenv() 
 
