@@ -1,3 +1,8 @@
+"""
+Script: Vacancy_AI_Analyzer.py
+Purpose: GenAI-powered analysis of job descriptions to determine candidate fit.
+Author: Iván Durán
+"""
 from tenacity import (
     retry, 
     stop_after_attempt, 

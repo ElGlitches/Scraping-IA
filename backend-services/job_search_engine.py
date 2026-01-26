@@ -1,3 +1,8 @@
+"""
+Script: Job_Search_Engine_Enterprise.py
+Purpose: Orchestrates multi-platform job scraping and AI-driven vacancy analysis.
+Author: Iván Durán
+"""
 import os
 import sys
 import json
@@ -6,18 +11,29 @@ from time import sleep
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
 
-# UI Imports
-from src import ui
-from rich.live import Live
+# --- ENTERPRISE PATH SETUP ---
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(BASE_DIR, "infrastructure"))
+sys.path.append(os.path.join(BASE_DIR, "data-engineering"))
+sys.path.append(os.path.join(BASE_DIR, "ai-automations"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-from src.getonbrd import buscar_vacantes_getonbrd
-from src.linkedin_jobs import buscar_vacantes_linkedin
-from src.sheets_manager import aplanar_y_normalizar, conectar_sheets, preparar_hoja, actualizar_sheet, registrar_actualizacion, obtener_urls_existentes
-from src.analizador_vacantes import analizar_vacante
-from src.asesor import generar_pack_postulacion
-from src.config import PALABRAS_CLAVE, RUTA_CV
-from src.cv_analysis import extract_text_from_pdf, analyze_cv_keywords, get_file_hash, load_keyword_cache, save_keyword_cache
+# Infrastructure Imports
+import ui
+from config import PALABRAS_CLAVE, RUTA_CV
+from upload_helper import upload_file
+
+# Data Engineering Imports
+from sheets_manager import aplanar_y_normalizar, conectar_sheets, preparar_hoja, actualizar_sheet, registrar_actualizacion, obtener_urls_existentes
+
+# AI Automation Imports
+from vacancy_analyzer import analizar_vacante
+from advisor import generar_pack_postulacion
+from cv_analysis import extract_text_from_pdf, analyze_cv_keywords, get_file_hash, load_keyword_cache, save_keyword_cache
+
+# Scraper Imports (Local Lib)
+from getonbrd import buscar_vacantes_getonbrd
+from linkedin_jobs import buscar_vacantes_linkedin
 
 
 PORTALES_ACTIVOS = [

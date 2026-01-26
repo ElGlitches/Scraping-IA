@@ -1,0 +1,10 @@
+pandas==2.1.0
+google-cloud-bigquery==3.11.0
+openai==1.3.0
+requests==2.31.0
+rich
+gspread
+gspread-formatting
+python-dotenv
+tenacity
+google-genai
