@@ -10,6 +10,7 @@ import traceback
 from time import sleep
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
+import questionary
 
 # --- ENTERPRISE PATH SETUP ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -229,10 +230,10 @@ def main():
             keywords_dinamicas = []
 
             # 1. Intentar obtener keywords del CV (con Cache Inteligente)
+            # 1. Intentar obtener keywords del CV (con Cache Inteligente)
             if os.path.exists(RUTA_CV):
                 ui.console.print(f"\n[dim]📄 Verificando CV en: {RUTA_CV}[/dim]")
                 
-                # Calcular hash para ver si cambió
                 current_cv_hash = get_file_hash(RUTA_CV)
                 cached_keywords = load_keyword_cache(current_cv_hash)
                 
@@ -240,19 +241,51 @@ def main():
                     ui.console.print(f"⚡ [green]Usando keywords en cache (CV sin cambios):[/green] {', '.join(cached_keywords)}")
                     keywords_dinamicas = cached_keywords
                 else:
-                    # Si no hay cache o cambió, preguntamos (o lo hacemos directo si prefieres, 
-                    # pero mantendré la confirmación por si el usuario quiere forcejear)
                     ui.console.print(f"📄 [bold]Se detectó un CV nuevo o modificado.[/bold]")
                     if ui.confirmar_accion("¿Analizar CV con IA para generar keywords?"):
                         try:
+                            # 1. Extracción Inicial
                             with ui.status_context("ANALYZING CV WITH AI"):
                                 cv_text = extract_text_from_pdf(RUTA_CV)
                                 keywords_dinamicas = analyze_cv_keywords(cv_text)
                             
                             if keywords_dinamicas:
-                                ui.console.print(f"🧠 [green]Keywords Generadas:[/green] {', '.join(keywords_dinamicas)}")
-                                # Guardar en cache
-                                save_keyword_cache(keywords_dinamicas, current_cv_hash)
+                                # 2. Loop de Validación (Solo se ejecuta una vez por versión de CV)
+                                while True:
+                                    ui.console.print("\n📋 [bold]KEYWORDS SUGERIDAS:[/bold]")
+                                    ui.console.print(f"[dim]{', '.join(keywords_dinamicas)}[/dim]")
+                                    
+                                    opcion_k = questionary.select(
+                                        "¿Qué deseas hacer?",
+                                        choices=[
+                                            "✅ Confirmar y Guardar (Cache)",
+                                            "✏️  Editar Manualmente",
+                                            "🔄 Regenerar desde 0 con IA"
+                                        ],
+                                        style=questionary.Style([
+                                            ('qmark', 'fg:white'),       
+                                            ('question', 'bold fg:white'), 
+                                            ('answer', 'fg:white'),      
+                                            ('pointer', 'fg:white bold'),
+                                            ('highlighted', 'bg:white fg:black'),
+                                        ])
+                                    ).ask()
+
+                                    if "Confirmar" in opcion_k:
+                                        # Guardar y salir
+                                        save_keyword_cache(keywords_dinamicas, current_cv_hash)
+                                        ui.console.print("✅ Keywords guardadas en cache para futuras búsquedas.")
+                                        break
+                                    
+                                    elif "Editar" in opcion_k:
+                                        nueva_str = questionary.text("Ingresa keywords (sep. por coma):", default=", ".join(keywords_dinamicas)).ask()
+                                        if nueva_str:
+                                            keywords_dinamicas = [k.strip() for k in nueva_str.split(",") if k.strip()]
+                                    
+                                    elif "Regenerar" in opcion_k:
+                                        with ui.status_context("RE-ANALYZING..."):
+                                            keywords_dinamicas = analyze_cv_keywords(cv_text)
+
                             else:
                                 ui.console.print("⚠️ No se pudieron extraer keywords del CV.")
                         except Exception as e:
