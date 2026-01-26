@@ -5,7 +5,7 @@ from gspread_formatting import (
     DataValidationRule, BooleanCondition, set_data_validation_for_cell_range,
     format_cell_ranges, CellFormat, set_frozen
 )
-from infrastructure.config import SCOPES, SHEET_NAME, CREDENTIALS_PATH 
+from config import SCOPES, SHEET_NAME, CREDENTIALS_PATH 
 import time
 
 # 💡 COLUMNAS OPTIMIZADAS (Sin Descripción, Razón Match, Prioridad, Match %)

@@ -4,9 +4,9 @@ from google.genai.errors import APIError
 from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from .utils import clean_json_response
-from .perfil import get_candidate_prompt
-from .upload_helper import enviar_mensaje_multimodal
+from utils import clean_json_response
+from perfil import get_candidate_prompt
+from upload_helper import enviar_mensaje_multimodal
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
